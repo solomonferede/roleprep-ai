@@ -9,36 +9,95 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900">
     <main class="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-6 sm:px-6 lg:px-8">
+
         <header class="border-b border-slate-200 py-5">
-            <h1 class="text-2xl font-semibold tracking-normal text-slate-950 sm:text-3xl">RolePrepAI</h1>
-            <p class="mt-2 text-sm text-slate-600 sm:text-base">Generate role-specific interview questions instantly</p>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-semibold tracking-normal text-slate-950 sm:text-3xl">
+                    RolePrepAI
+                </h1>
+                <span class="rounded-full bg-teal-100 px-3 py-1 text-xs font-medium text-teal-700">
+                    Powered by Gemini AI
+                </span>
+            </div>
+            <p class="mt-2 text-sm text-slate-600 sm:text-base">
+                Generate role-specific interview questions instantly
+            </p>
         </header>
 
         <section class="grid flex-1 items-start gap-8 py-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:py-12">
+
+            {# ── Form Panel ── #}
             <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                 <form id="question-form" method="post" class="space-y-5">
                     {{ csrf_input }}
+
+                    {# Job Title #}
                     <div>
-                        <label for="job_title" class="block text-sm font-medium text-slate-800">Job title</label>
+                        <label for="job_title" class="block text-sm font-medium text-slate-800">
+                            Job title
+                        </label>
                         <input
                             id="job_title"
                             name="job_title"
                             type="text"
                             value="{{ job_title }}"
-                            placeholder="e.g. Customer Success Manager"
+                            placeholder="e.g. Customer Success Manager, Data Scientist"
                             class="mt-2 w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
                             required
                         >
                     </div>
 
-                    <div class="flex min-h-12 items-center">
+                    {# Difficulty #}
+                    <div>
+                        <label for="difficulty" class="block text-sm font-medium text-slate-800">
+                            Difficulty level
+                        </label>
+                        <select
+                            id="difficulty"
+                            name="difficulty"
+                            class="mt-2 w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
+                        >
+                            <option value="Easy" {% if difficulty == 'Easy' %}selected{% endif %}>Easy</option>
+                            <option value="Medium" {% if difficulty == 'Medium' or not difficulty %}selected{% endif %}>Medium</option>
+                            <option value="Hard" {% if difficulty == 'Hard' %}selected{% endif %}>Hard</option>
+                        </select>
+                    </div>
+
+                    {# Question Type #}
+                    <div>
+                        <label for="question_type" class="block text-sm font-medium text-slate-800">
+                            Question type
+                        </label>
+                        <select
+                            id="question_type"
+                            name="question_type"
+                            class="mt-2 w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
+                        >
+                            <option value="Mixed" {% if question_type == 'Mixed' or not question_type %}selected{% endif %}>Mixed</option>
+                            <option value="Behavioral" {% if question_type == 'Behavioral' %}selected{% endif %}>Behavioral</option>
+                            <option value="Technical" {% if question_type == 'Technical' %}selected{% endif %}>Technical</option>
+                            <option value="Situational" {% if question_type == 'Situational' %}selected{% endif %}>Situational</option>
+                        </select>
+                    </div>
+
+                    {# Buttons #}
+                    <div class="flex flex-wrap gap-3 pt-2">
                         <button
                             id="submit-button"
                             type="submit"
-                            class="inline-flex w-full items-center justify-center rounded-md bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-200 sm:w-auto"
+                            class="inline-flex flex-1 items-center justify-center rounded-md bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-200 sm:flex-none"
                         >
-                            Generate Questions
+                            {% if questions %}Regenerate Questions{% else %}Generate Questions{% endif %}
                         </button>
+
+                        {% if questions or job_title %}
+                        <a
+                            href="/"
+                            class="inline-flex flex-1 items-center justify-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100 sm:flex-none"
+                        >
+                            Reset
+                        </a>
+                        {% endif %}
 
                         <div id="loading-state" class="hidden items-center gap-3 text-sm font-medium text-teal-800">
                             <span class="h-5 w-5 animate-spin rounded-full border-2 border-teal-200 border-t-teal-700"></span>
@@ -48,29 +107,66 @@
                 </form>
             </div>
 
+            {# ── Results Panel ── #}
             <div class="space-y-4">
+
+                {# Error #}
                 {% if error %}
-                    <div id="error-message" class="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-                        {{ error }}
-                    </div>
+                <div id="error-message" class="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                    {{ error }}
+                </div>
                 {% endif %}
 
+                {# Questions #}
                 {% if questions %}
-                    <div id="results" class="grid gap-4">
-                        {% for question in questions %}
-                            <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-                                <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Question {{ loop.index }}</p>
-                                <p class="mt-3 text-base leading-7 text-slate-800">{{ question }}</p>
-                            </article>
-                        {% endfor %}
-                    </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        {{ job_title }} · {{ difficulty }} · {{ question_type }}
+                    </p>
+                    <button
+                        onclick="copyAllQuestions()"
+                        id="copy-all-button"
+                        class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        <span id="copy-all-text">Copy all</span>
+                    </button>
+                </div>
+
+                <div id="results" class="grid gap-4">
+                    {% for question in questions %}
+                    <article class="group relative rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/30">
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">
+                                Question {{ loop.index }}
+                            </p>
+                            <button
+                                onclick="copyQuestion(this)"
+                                data-question="{{ question }}"
+                                class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                title="Copy to clipboard"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                <span class="copy-text">Copy</span>
+                            </button>
+                        </div>
+                        <p class="mt-3 text-base leading-7 text-slate-800">{{ question }}</p>
+                    </article>
+                    {% endfor %}
+                </div>
+
                 {% else %}
-                    <div id="empty-state" class="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-sm leading-6 text-slate-600">
-                        Enter a role and RolePrepAI will prepare three focused interview questions for it.
-                    </div>
+                <div id="empty-state" class="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-sm leading-6 text-slate-600">
+                    Enter a role, difficulty level, and question type — RolePrepAI will prepare three focused interview questions.
+                </div>
                 {% endif %}
+
             </div>
         </section>
+
+        <footer class="mt-auto border-t border-slate-200 py-8 text-center text-sm text-slate-500">
+            <p>&copy; 2026 Solomon Ferede. All rights reserved.</p>
+        </footer>
     </main>
 
     <script src="{{ static('js/main.js') }}"></script>
