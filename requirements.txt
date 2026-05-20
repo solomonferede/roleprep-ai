@@ -1,0 +1,6 @@
+# Python dependencies for running RolePrepAI in development or production.
+django
+django-environ
+google-genai
+gunicorn
+jinja2
