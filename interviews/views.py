@@ -89,9 +89,6 @@ def _error_message(error):
     return "Could not reach Gemini. Please check your connection."
 
 
-from django.views.decorators.csrf import csrf_exempt
-
-@csrf_exempt
 def index(request):
     """Render homepage and handle interview question generation."""
     job_title = (
