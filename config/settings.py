@@ -36,8 +36,8 @@ DEBUG = env.bool("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
 
-# Gemini API Key
-GEMINI_API_KEY = env("GEMINI_API_KEY")
+# Gemini API Key(s) - Supports rotation if one is exhausted
+GEMINI_API_KEYS = env.list("GEMINI_API_KEYS", default=[])
 
 # Application definition
 
@@ -138,3 +138,25 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # Default primary key field type
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Logging configuration
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "interviews": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
