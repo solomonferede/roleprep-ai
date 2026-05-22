@@ -73,4 +73,3 @@ test_*.py
 README.md
 LICENSE
 Makefile
-*.txt
