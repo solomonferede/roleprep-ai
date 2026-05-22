@@ -30,6 +30,7 @@ NGINX_AVAILABLE_DIR="/etc/nginx/sites-available"
 NGINX_ENABLED_DIR="/etc/nginx/sites-enabled"
 NGINX_CONFIG_NAME="roleprepai.conf"
 NGINX_CONFIG_DEST="$NGINX_AVAILABLE_DIR/$NGINX_CONFIG_NAME"
+DOMAIN="roleprepai.solomonferede.com.et"
 SETUP_LOG="$PROJECT_DIR/logs/setup.log"
 
 # Helper functions
@@ -334,8 +335,20 @@ main() {
         exit 1
     fi
     enable_nginx_site
-    reload_nginx
-    verify_nginx
+
+    # If Let's Encrypt certificates are present for the domain, test and reload Nginx.
+    CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
+    if [ -f "$CERT_DIR/fullchain.pem" ] && [ -f "$CERT_DIR/privkey.pem" ]; then
+        log_info "SSL certificates found in $CERT_DIR — testing and reloading Nginx."
+        if ! reload_nginx; then
+            log_warning "Nginx reload failed even though certs exist — please inspect /var/log/nginx/"
+        else
+            verify_nginx
+        fi
+    else
+        log_warning "No SSL certificates found at $CERT_DIR — skipping Nginx reload to avoid failures."
+        log_info "Run: sudo certbot --nginx -d ${DOMAIN} (email: ezezsolomonferede@gmail.com) to obtain certificates, then: sudo systemctl reload nginx"
+    fi
     
     # Show next steps
     show_next_steps
