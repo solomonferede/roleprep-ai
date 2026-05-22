@@ -27,7 +27,7 @@ NC='\033[0m' # No Color
 # Configuration
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTAINER_NAME="roleprepai-web"
-DEPLOY_LOG="/tmp/roleprepai-deploy.log"
+DEPLOY_LOG="$PROJECT_DIR/logs/deploy.log"
 DOMAIN="roleprepai.solomonferede.com.et"
 
 # Helper functions
@@ -201,8 +201,8 @@ main() {
     echo "╚════════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
     
-    # Clear log file
-    > "$DEPLOY_LOG"
+    # Create logs directory if it doesn't exist
+    mkdir -p "$PROJECT_DIR/logs"
     
     log_info "Starting deployment process..."
     log_info "Project directory: $PROJECT_DIR"

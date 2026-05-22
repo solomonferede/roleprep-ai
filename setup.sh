@@ -30,7 +30,7 @@ NGINX_AVAILABLE_DIR="/etc/nginx/sites-available"
 NGINX_ENABLED_DIR="/etc/nginx/sites-enabled"
 NGINX_CONFIG_NAME="roleprepai.conf"
 NGINX_CONFIG_DEST="$NGINX_AVAILABLE_DIR/$NGINX_CONFIG_NAME"
-SETUP_LOG="/tmp/roleprepai-setup.log"
+SETUP_LOG="$PROJECT_DIR/logs/setup.log"
 
 # Helper functions
 log_info() {
@@ -306,6 +306,9 @@ main() {
     
     # Clear log file
     > "$SETUP_LOG"
+    
+    # Create logs directory if it doesn't exist
+    mkdir -p "$PROJECT_DIR/logs"
     
     log_info "Starting VPS setup process..."
     log_info "Project directory: $PROJECT_DIR"
