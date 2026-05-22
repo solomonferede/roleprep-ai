@@ -53,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # WhiteNoise for static files (must be after SecurityMiddleware)
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -135,9 +136,34 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+# WhiteNoise compression settings for better performance
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 # Default primary key field type
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Security settings for production
+# Only enable when DEBUG=False
+if not DEBUG:
+    # HTTPS/SSL settings
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+    # HSTS settings (HTTP Strict Transport Security)
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    # Frame click-jacking protection
+    X_FRAME_OPTIONS = "SAMEORIGIN"
+
+    # CSRF trusted origins (for Nginx reverse proxy)
+    CSRF_TRUSTED_ORIGINS = [
+        "https://roleprepai.solomonferede.com.et",
+        "https://*.solomonferede.com.et",
+    ]
 
 # Logging configuration
 LOGGING = {

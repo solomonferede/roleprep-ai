@@ -4,6 +4,7 @@ import re
 from itertools import product as cartesian_product
 
 from django.conf import settings
+from django.http import JsonResponse
 from django.shortcuts import render
 from google.genai import errors as genai_errors
 
@@ -127,3 +128,14 @@ def index(request):
             context["error"] = _error_message(error)
 
     return render(request, "index.html", context)
+
+
+def health(request):
+    """Health check endpoint for Docker container health monitoring."""
+    return JsonResponse(
+        {
+            "status": "healthy",
+            "message": "RolePrepAI service is running",
+        },
+        status=200,
+    )

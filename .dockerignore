@@ -1,0 +1,76 @@
+# Git and version control
+.git/
+.gitignore
+.gitattributes
+
+# Environment variables (never include in Docker image)
+.env
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+
+# Virtual environments
+venv/
+
+# Django
+*.log
+db.sqlite3
+staticfiles/
+media/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files (not needed in image)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+
+# Documentation
+*.md
+docs/
+
+# Testing
+tests/
+test_*.py
+*_test.py
+.agents/
+.codex/
+
+# Other
+README.md
+LICENSE
+Makefile
+*.txt
