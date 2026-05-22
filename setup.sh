@@ -32,6 +32,7 @@ NGINX_CONFIG_NAME="roleprepai.conf"
 NGINX_CONFIG_DEST="$NGINX_AVAILABLE_DIR/$NGINX_CONFIG_NAME"
 DOMAIN="roleprepai.solomonferede.com.et"
 SETUP_LOG="$PROJECT_DIR/logs/setup.log"
+CERTBOT_EMAIL="ezezsolomonferede@gmail.com"
 
 # Helper functions
 log_info() {
@@ -212,6 +213,45 @@ copy_nginx_config() {
     log_success "Nginx config copied to $NGINX_CONFIG_DEST"
 }
 
+
+deploy_temp_nginx_for_certbot() {
+    log_info "Creating temporary HTTP-only Nginx config for Certbot ACME challenges..."
+
+    # Ensure webroot exists for ACME challenge
+    mkdir -p /var/www/certbot
+    chown www-data:www-data /var/www/certbot || true
+
+    # Backup existing config if present
+    if [ -f "$NGINX_CONFIG_DEST" ]; then
+        cp "$NGINX_CONFIG_DEST" "${NGINX_CONFIG_DEST}.pre-certbak"
+    fi
+
+    cat > "$NGINX_CONFIG_DEST" <<'NGINX_TMP'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name DOMAIN_PLACEHOLDER;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+NGINX_TMP
+
+    # Replace placeholder with actual domain
+    sed -i "s|DOMAIN_PLACEHOLDER|$DOMAIN|g" "$NGINX_CONFIG_DEST"
+    chmod 644 "$NGINX_CONFIG_DEST"
+    log_success "Temporary Nginx config written to $NGINX_CONFIG_DEST"
+}
+
 # Test Nginx configuration
 test_nginx_config() {
     log_info "Testing Nginx configuration..."
@@ -329,25 +369,52 @@ main() {
     set_permissions
     
     # Setup Nginx
-    copy_nginx_config
-    if ! test_nginx_config; then
-        log_error "Nginx configuration has errors. Please fix them before proceeding."
-        exit 1
-    fi
-    enable_nginx_site
-
-    # If Let's Encrypt certificates are present for the domain, test and reload Nginx.
+    # If certs do not exist, deploy a temporary HTTP-only config so Certbot can obtain certificates.
     CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
     if [ -f "$CERT_DIR/fullchain.pem" ] && [ -f "$CERT_DIR/privkey.pem" ]; then
-        log_info "SSL certificates found in $CERT_DIR — testing and reloading Nginx."
+        log_info "SSL certificates found in $CERT_DIR — deploying production Nginx config."
+        copy_nginx_config
+        if ! test_nginx_config; then
+            log_error "Nginx configuration has errors. Please fix them before proceeding."
+            exit 1
+        fi
+        enable_nginx_site
         if ! reload_nginx; then
-            log_warning "Nginx reload failed even though certs exist — please inspect /var/log/nginx/"
+            log_warning "Nginx reload failed — please inspect /var/log/nginx/"
         else
             verify_nginx
         fi
     else
-        log_warning "No SSL certificates found at $CERT_DIR — skipping Nginx reload to avoid failures."
-        log_info "Run: sudo certbot --nginx -d ${DOMAIN} (email: ezezsolomonferede@gmail.com) to obtain certificates, then: sudo systemctl reload nginx"
+        log_warning "No SSL certificates found at $CERT_DIR — preparing temporary Nginx config for Certbot."
+        deploy_temp_nginx_for_certbot
+        if ! test_nginx_config; then
+            log_error "Temporary Nginx configuration has errors. Please inspect $NGINX_CONFIG_DEST"
+            exit 1
+        fi
+        enable_nginx_site
+        if ! reload_nginx; then
+            log_error "Failed to reload Nginx with temporary config. Aborting Certbot step."
+            exit 1
+        fi
+
+        # Run Certbot non-interactively using webroot
+        log_info "Running Certbot to obtain certificates for ${DOMAIN} using webroot /var/www/certbot"
+        if certbot certonly --webroot -w /var/www/certbot -d "$DOMAIN" --email "$CERTBOT_EMAIL" --agree-tos --non-interactive; then
+            log_success "Certificates obtained successfully for ${DOMAIN}"
+            # Deploy production config now that certs are present
+            copy_nginx_config
+            if test_nginx_config; then
+                if reload_nginx; then
+                    verify_nginx
+                else
+                    log_warning "Nginx failed to reload after deploying production config. Check logs."
+                fi
+            else
+                log_error "Production Nginx config has errors after certificate installation. Please inspect $NGINX_CONFIG_DEST"
+            fi
+        else
+            log_error "Certbot failed to obtain certificates for ${DOMAIN}. Keep temporary config in place and run Certbot manually: sudo certbot certonly --webroot -w /var/www/certbot -d ${DOMAIN} --email ${CERTBOT_EMAIL} --agree-tos"
+        fi
     fi
     
     # Show next steps
