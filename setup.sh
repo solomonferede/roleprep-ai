@@ -304,11 +304,11 @@ main() {
     echo "╚════════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
     
+    # Create logs directory if it doesn't exist (BEFORE writing to log)
+    mkdir -p "$PROJECT_DIR/logs"
+    
     # Clear log file
     > "$SETUP_LOG"
-    
-    # Create logs directory if it doesn't exist
-    mkdir -p "$PROJECT_DIR/logs"
     
     log_info "Starting VPS setup process..."
     log_info "Project directory: $PROJECT_DIR"
